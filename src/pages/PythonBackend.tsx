@@ -79,12 +79,12 @@ const PythonBackend = () => {
               <div className="bg-green-50 p-4 rounded-md">
                 <h4 className="font-medium mb-2">Required Packages</h4>
                 <ul className="text-sm space-y-1 font-mono">
-                  <li>numpy>=1.20.0</li>
-                  <li>pandas>=1.3.0</li>
-                  <li>torch>=1.9.0</li>
-                  <li>flask>=2.0.0</li>
-                  <li>matplotlib>=3.4.0</li>
-                  <li>scipy>=1.7.0</li>
+                  <li>numpy&gt;=1.20.0</li>
+                  <li>pandas&gt;=1.3.0</li>
+                  <li>torch&gt;=1.9.0</li>
+                  <li>flask&gt;=2.0.0</li>
+                  <li>matplotlib&gt;=3.4.0</li>
+                  <li>scipy&gt;=1.7.0</li>
                 </ul>
               </div>
             </div>
