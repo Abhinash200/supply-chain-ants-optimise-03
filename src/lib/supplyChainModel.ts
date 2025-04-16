@@ -1,4 +1,3 @@
-
 // Types for supply chain network
 export interface SupplyChainNode {
   id: number;
@@ -22,6 +21,21 @@ export interface SupplyChainEdge {
 export interface SupplyChainNetwork {
   nodes: Record<number, SupplyChainNode>;
   edges: SupplyChainEdge[];
+}
+
+// API response interfaces
+export interface OptimizationResult {
+  bestPath: number[];
+  pathCost: number;
+  convergenceData: { iteration: number; bestCost: number }[];
+}
+
+export interface MLPrediction {
+  evaporationRate: number;
+  alpha: number;
+  beta: number;
+  predictedCost: number;
+  confidence: number;
 }
 
 // Generate a random supply chain network
@@ -106,4 +120,58 @@ export const getNodeColor = (type: string): string => {
     case 'retailer': return '#f59e0b'; // amber-500
     default: return '#6b7280'; // gray-500
   }
+};
+
+// API service for Python backend integration
+export const apiService = {
+  // Base URL for the Python API
+  baseUrl: 'http://localhost:5000/api',
+  
+  // Get optimization results from Python backend
+  async runOptimization(network: SupplyChainNetwork, params: ACOParameters): Promise<OptimizationResult> {
+    try {
+      const response = await fetch(`${this.baseUrl}/optimize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ network, params }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error running optimization:', error);
+      throw error;
+    }
+  },
+  
+  // Get ML predictions from Python backend
+  async getPrediction(network: SupplyChainNetwork, features: {
+    nodeComplexity: number;
+    routeVariability: number;
+    demandVolatility: number;
+  }): Promise<MLPrediction> {
+    try {
+      const response = await fetch(`${this.baseUrl}/predict`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ network, features }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error getting ML prediction:', error);
+      throw error;
+    }
+  },
 };

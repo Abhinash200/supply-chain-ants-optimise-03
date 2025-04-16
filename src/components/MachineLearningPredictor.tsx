@@ -1,13 +1,13 @@
 
 import React, { useState } from 'react';
-import { SupplyChainNetwork } from '@/lib/supplyChainModel';
+import { SupplyChainNetwork, apiService } from '@/lib/supplyChainModel';
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Brain } from 'lucide-react';
+import { CheckCircle2, Brain, AlertCircle } from 'lucide-react';
+import { useToast } from "@/components/ui/use-toast";
 
 interface MachineLearningPredictorProps {
   network: SupplyChainNetwork;
@@ -25,36 +25,38 @@ const MachineLearningPredictor: React.FC<MachineLearningPredictorProps> = ({ net
   const [nodeComplexity, setNodeComplexity] = useState(50);
   const [routeVariability, setRouteVariability] = useState(60);
   const [demandVolatility, setDemandVolatility] = useState(40);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  const handlePredict = () => {
+  const handlePredict = async () => {
     setLoading(true);
+    setApiError(null);
     
-    // Simulate ML prediction delay
-    setTimeout(() => {
-      // Calculate network characteristics
-      const nodeCount = Object.keys(network.nodes).length;
-      const edgeCount = network.edges.length;
-      const density = edgeCount / (nodeCount * (nodeCount - 1));
-      
-      // Use these factors to generate "intelligent" predictions
-      // These would normally come from a trained ML model
-      const predictedEvaporationRate = 0.1 + (0.8 * (nodeComplexity / 100));
-      const predictedAlpha = 1 + (3 * (nodeComplexity / 100));
-      const predictedBeta = 2 + (2 * (routeVariability / 100));
-      
-      // Add some randomness to make it look realistic
-      const randomFactor = 0.9 + (Math.random() * 0.2);
-      
-      setPredictedParams({
-        evaporationRate: Math.round(predictedEvaporationRate * 10) / 10,
-        alpha: Math.round(predictedAlpha * 10) / 10,
-        beta: Math.round(predictedBeta * 10) / 10,
-        predictedCost: Math.round(50 * density * randomFactor * 100) / 100,
-        confidence: Math.round((85 + (Math.random() * 10)) * 10) / 10
+    try {
+      // Call the Python ML API
+      const prediction = await apiService.getPrediction(network, {
+        nodeComplexity,
+        routeVariability,
+        demandVolatility
       });
       
+      setPredictedParams(prediction);
+      toast({
+        title: "Prediction Complete",
+        description: "ML parameters have been predicted successfully.",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error('Prediction error:', error);
+      setApiError('Failed to connect to Python backend. Make sure your Python server is running.');
+      toast({
+        title: "Prediction Failed",
+        description: "Could not connect to the Python ML backend.",
+        variant: "destructive",
+      });
+    } finally {
       setLoading(false);
-    }, 2000);
+    }
   };
 
   return (
@@ -65,12 +67,30 @@ const MachineLearningPredictor: React.FC<MachineLearningPredictorProps> = ({ net
           <div>
             <h3 className="text-lg font-medium">Machine Learning Parameter Prediction</h3>
             <p className="text-gray-600">
-              Our ML model analyzes your supply chain network characteristics and predicts optimal 
-              ACO parameters to achieve the best results for your specific scenario.
+              Our Python-powered ML model analyzes your supply chain network characteristics and predicts optimal 
+              ACO parameters using NumPy, Pandas, and PyTorch for accurate results.
             </p>
           </div>
         </div>
       </div>
+
+      {apiError && (
+        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg flex items-start">
+          <AlertCircle className="w-5 h-5 mr-2 mt-0.5 flex-shrink-0" />
+          <div>
+            <h4 className="font-medium">Backend Connection Error</h4>
+            <p className="text-sm">{apiError}</p>
+            <p className="text-sm mt-2">
+              To run the Python backend:
+              <ol className="list-decimal list-inside mt-1 ml-2">
+                <li>Navigate to the python_backend directory</li>
+                <li>Run <code className="bg-red-100 px-1 rounded">pip install -r requirements.txt</code></li>
+                <li>Start the server with <code className="bg-red-100 px-1 rounded">python app.py</code></li>
+              </ol>
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="p-6">
@@ -136,7 +156,7 @@ const MachineLearningPredictor: React.FC<MachineLearningPredictorProps> = ({ net
               onClick={handlePredict}
               disabled={loading}
             >
-              {loading ? 'Analyzing Network...' : 'Predict Optimal Parameters'}
+              {loading ? 'Connecting to Python Backend...' : 'Predict Optimal Parameters'}
             </Button>
           </div>
         </Card>
@@ -148,10 +168,10 @@ const MachineLearningPredictor: React.FC<MachineLearningPredictorProps> = ({ net
             <div className="flex flex-col items-center justify-center h-[320px] text-center">
               <div className="text-gray-400 mb-4">
                 <Brain className="w-16 h-16 mx-auto mb-2" />
-                <p>Waiting for network analysis</p>
+                <p>Waiting for Python ML prediction</p>
               </div>
               <p className="text-sm text-gray-500 max-w-xs">
-                Click "Predict Optimal Parameters" to have our ML model analyze your network and predict optimal ACO settings.
+                Click "Predict Optimal Parameters" to use our Python-powered ML model with NumPy, Pandas, and PyTorch.
               </p>
             </div>
           ) : (
@@ -194,7 +214,7 @@ const MachineLearningPredictor: React.FC<MachineLearningPredictorProps> = ({ net
               <div className="bg-green-50 p-4 rounded-md">
                 <h4 className="font-medium mb-2">Recommendation</h4>
                 <p className="text-sm text-gray-700">
-                  For your network with {Object.keys(network.nodes).length} nodes and {network.edges.length} connections, 
+                  Based on Python ML analysis of your network with {Object.keys(network.nodes).length} nodes and {network.edges.length} connections, 
                   we recommend using the parameters above for optimal balance between solution quality and convergence speed.
                 </p>
               </div>
@@ -207,6 +227,10 @@ const MachineLearningPredictor: React.FC<MachineLearningPredictorProps> = ({ net
                   onClick={() => {
                     // This would normally apply the predicted parameters to the ACO configuration
                     console.log("Applied ML predicted parameters");
+                    toast({
+                      title: "Parameters Applied",
+                      description: "ML predicted parameters have been applied to the optimizer.",
+                    });
                   }}
                 >
                   Apply These Parameters
